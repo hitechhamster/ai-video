@@ -1,9 +1,10 @@
 import httpx
 
 from app.config import settings
+from app.providers.base import LLMProvider
 
 
-class MiniMaxLLMProvider:
+class MiniMaxLLMProvider(LLMProvider):
     def __init__(self) -> None:
         self._host = settings.minimax_api_host.rstrip("/")
         self._api_key = settings.minimax_api_key

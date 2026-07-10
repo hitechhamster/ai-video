@@ -20,10 +20,12 @@ class Settings(BaseSettings):
     gemini_api_key: str = ""
     gemini_image_model: str = "gemini-2.5-flash-image"
     gemini_tts_model: str = "gemini-2.5-flash-preview-tts"
+    gemini_text_model: str = "gemini-2.5-flash"
 
     # OpenRouter：生图走它代理的 gemini-2.5-flash-image；它没有可用的TTS，所以配音回落到 MiniMax
     openrouter_api_key: str = ""
     openrouter_image_model: str = "google/gemini-2.5-flash-image"
+    openrouter_text_model: str = "google/gemini-2.5-flash"
 
     # 备用：通义万相适配器仍保留在 providers/image/tongyi_wanxiang.py，如需切换回去要配这个
     dashscope_api_key: str = ""

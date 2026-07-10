@@ -126,14 +126,14 @@ export default function StyleManager() {
                 setForm({ ...form, image_provider: e.target.value as StyleInput["image_provider"] })
               }
             >
-              <option value="openrouter">OpenRouter（配音走 MiniMax）</option>
-              <option value="gemini">Gemini 官方（配音也走 Gemini）</option>
+              <option value="openrouter">OpenRouter（配音需另配 MiniMax）</option>
+              <option value="gemini">Gemini 官方（一个 key 全包）</option>
             </select>
             <p className="hint">
               两个渠道都用 Nano Banana（gemini-2.5-flash-image）出图，画面里可以出现拼写正确的英文短标签。
               {form.image_provider === "gemini"
-                ? " 选 Gemini 官方时配音也用 Gemini 音色，自己闭环。"
-                : " OpenRouter 上没有可用的 TTS，所以配音会回落到 MiniMax。"}
+                ? " 生图、配音、场景提示词全走 Gemini，只需要 GEMINI_API_KEY。"
+                : " OpenRouter 上没有可用的 TTS，所以配音会回落到 MiniMax，需要额外配 MINIMAX_API_KEY。"}
             </p>
           </label>
           <label>

@@ -23,6 +23,13 @@ class TTSProvider(ABC):
     async def list_voices(self) -> list[dict]: ...
 
 
+class LLMProvider(ABC):
+    """把旁白转成结构化场景提示词用的文本模型。"""
+
+    @abstractmethod
+    async def chat(self, system_prompt: str, user_prompt: str) -> str: ...
+
+
 class ImageProvider(ABC):
     @abstractmethod
     async def generate(

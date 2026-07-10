@@ -13,18 +13,16 @@ AI短片拼接模式（每段直接生成视频片段而非静态图）尚未实
 
 ## 生图/配音渠道
 
-每个**画风**上挂一个"生图渠道"，配音渠道跟着它走。两个渠道底层用的都是同一个 Nano Banana 模型（`gemini-2.5-flash-image`），出图效果一致，区别只在配音：
+每个**画风**上挂一个"生图渠道"，配音和场景提示词都跟着它走。两个渠道底层用的都是同一个 Nano Banana 模型（`gemini-2.5-flash-image`），出图效果一致，区别只在配音：
 
-| 生图渠道 | 生图 | 配音 | 需要的 Key |
-|---|---|---|---|
-| `gemini`（官方直连） | Gemini | Gemini | 只要 `GEMINI_API_KEY`，一个key全包 |
-| `openrouter` | OpenRouter 代理 | **回落到 MiniMax** | `OPENROUTER_API_KEY` **+** `MINIMAX_API_KEY` |
+| 生图渠道 | 生图 | 配音 | 场景提示词 | 需要的 Key |
+|---|---|---|---|---|
+| `gemini`（官方直连） | Gemini | Gemini | Gemini | **只要 `GEMINI_API_KEY`** |
+| `openrouter` | OpenRouter | **回落 MiniMax** | OpenRouter | `OPENROUTER_API_KEY` **+** `MINIMAX_API_KEY` |
 
-⚠️ **只有 OpenRouter key 是跑不起来的**：OpenRouter 上没有可用的 TTS（全平台只有音乐生成 `lyria` 和对话式语音 `gpt-audio`，都不适合"整段旁白合成一条连续人声、还要拿到精确时长"这个用法），所以选 `openrouter` 渠道时配音必须另外注册 MiniMax。
+**想只注册一个账号，就把画风的生图渠道设成 `gemini`** —— 生图、配音、提示词全由 Gemini 一家搞定，`MINIMAX_*` 那几行可以完全留空。
 
-**想少注册一个账号，就把画风的生图渠道设成 `gemini`**，生图和配音都由 Gemini 一家搞定。
-
-另外，`MINIMAX_API_KEY` 目前还有一个绕不开的用途：把旁白转成结构化场景提示词的那步 LLM 调用（`scene_prompt.py`）也走 MiniMax。所以严格来说，当前无论选哪个渠道都需要 MiniMax key，只是选 `gemini` 时它不再负责配音。
+⚠️ 选 `openrouter` 则必须额外注册 MiniMax：OpenRouter 上没有可用的 TTS（全平台只有音乐生成 `lyria` 和对话式语音 `gpt-audio`，都不适合"整段旁白合成一条连续人声、还要拿到精确时长"这个用法）。
 
 ## 目录结构
 
@@ -37,10 +35,9 @@ AI短片拼接模式（每段直接生成视频片段而非静态图）尚未实
 - Node.js 18+
 - 本地安装 `ffmpeg` 并加入 PATH（`ffmpeg -version` 能正常输出即可，仅用于配音静音检测切分和探测音频/视频时长）
 - 本机安装**剪映专业版**（草稿要落在剪映本地草稿文件夹里，剪映App才能打开预览/编辑/导出；生成草稿这一步本身不需要剪映在后台运行）
-- [MiniMax 开放平台](https://platform.minimax.io) 账号 + API Key（**必需**：结构化场景提示词那步 LLM 调用走它；选 `openrouter` 渠道时配音也走它）
-- 生图渠道二选一（见上面的[生图/配音渠道](#生图配音渠道)）：
-  - [Google AI Studio](https://aistudio.google.com/apikey) 拿 `GEMINI_API_KEY` —— 推荐，生图+配音一个key全包
-  - [OpenRouter](https://openrouter.ai/keys) 拿 `OPENROUTER_API_KEY` —— 生图走它，但配音仍需上面的 MiniMax key
+- API Key，二选一（见上面的[生图/配音渠道](#生图配音渠道)）：
+  - **推荐**：[Google AI Studio](https://aistudio.google.com/apikey) 拿 `GEMINI_API_KEY` —— 一个key跑通全流程
+  - 或者：[OpenRouter](https://openrouter.ai/keys) 的 `OPENROUTER_API_KEY` **加上** [MiniMax](https://platform.minimax.io) 的 `MINIMAX_API_KEY`（后者只用来配音）
 
 ## 启动方式
 

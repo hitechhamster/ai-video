@@ -1,9 +1,7 @@
 import re
 
 from app.models import Style
-from app.providers.llm.minimax_llm import MiniMaxLLMProvider
-
-llm_provider = MiniMaxLLMProvider()
+from app.providers.llm import get_llm_provider
 
 SYSTEM_PROMPT = """你是一名"情感可视化脚本工程师"，负责把单句场景旁白压缩成两段可以直接喂给生图模型(img_prompt)和轻动画模型(video_prompt)的提示词。
 
@@ -122,6 +120,7 @@ async def build_scene_prompt(segment_text: str, style: Style) -> tuple[str, str]
     ).replace("__TEXT_POLICY__", _text_policy(style))
     user_prompt = f"content: {segment_text}"
 
+    llm_provider = get_llm_provider(style.image_provider)
     raw = await llm_provider.chat(system_prompt, user_prompt)
     cleaned = _strip_think(raw)
     return _extract_prompts(cleaned)
