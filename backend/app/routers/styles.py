@@ -4,12 +4,11 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db import get_db
 from app.models import Style
-from app.providers.image.seedream import SeedreamImageProvider
+from app.providers.image import get_image_provider
 from app.schemas import StyleCreate, StyleOut
 from app.services.scene_prompt import build_character_prompt
 
 router = APIRouter(prefix="/styles", tags=["styles"])
-image_provider = SeedreamImageProvider()
 
 
 @router.get("", response_model=list[StyleOut])
@@ -47,6 +46,7 @@ async def generate_style_preview(style_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="画风不存在")
 
     prompt, negative_prompt = build_character_prompt(style)
+    image_provider = get_image_provider(style.image_provider)
     try:
         result = await image_provider.generate(prompt, negative_prompt=negative_prompt)
     except Exception as exc:  # noqa: BLE001

@@ -56,9 +56,26 @@ __STYLE_ANCHOR__
 
 "5秒场景：主体<动作>，配角<互动动作>，镜头<轻微运动：轻微推进1-2%/轻微平移2%/静止不动/轻微拉远1.5%>，转场描述（如：平滑过渡/温暖平滑转场/明快过渡）"
 
-请严格按 "IMG_PROMPT: ..." 和 "VIDEO_PROMPT: ..." 两行输出。img_prompt 和 video_prompt 的场景描述部分：默认使用英文撰写；只有当输入的旁白原文本身是中文时，才改用中文撰写。风格锚点部分保持原文不译。场景描述里绝对不能包含任何具体的文字、标语、屏幕上的字句或数字内容——只描述"有一块屏幕/一份文件/一个牌子"这类物件轮廓，不描述上面写了什么，避免生图模型把语言不匹配的文字画进画面里。
+请严格按 "IMG_PROMPT: ..." 和 "VIDEO_PROMPT: ..." 两行输出。img_prompt 和 video_prompt 的场景描述部分：默认使用英文撰写；只有当输入的旁白原文本身是中文时，才改用中文撰写。风格锚点部分保持原文不译。
+
+__TEXT_POLICY__
 
 重要：上面几条规则(1-6)里出现的中文词汇（如"色板"、"构图"、"背景"、"辅助色"等）只是给你解释规则用的，不是要你原样抄进输出里。如果你决定用英文撰写这一句img_prompt，那么从头到尾都必须是英文，包括环境元素、色彩构图这几部分也要翻译成英文描述（例如"color palette: soft blue background, light gray accents, black linework"、"composition: subject centered, 40% negative space"），不能保留任何中文字词或中文标点。写完后自查一遍，确认没有遗漏的汉字。"""
+
+# 不同文生图模型对"画面内文字"的能力差异很大，提示词策略要分开走
+TEXT_POLICY_NO_TEXT = """## 画面内文字规则（重要）
+
+场景描述里绝对不能包含任何具体的文字、标语、屏幕上的字句或数字内容——只描述"有一块屏幕/一份文件/一个牌子"这类物件轮廓，不描述上面写了什么。当前使用的生图模型画不出可读的文字，硬要求写字只会得到一堆乱码字形。"""
+
+TEXT_POLICY_ALLOW_TEXT = """## 画面内文字规则（重要）
+
+当前使用的生图模型能准确渲染英文文字。为了让画面本身带一点信息量，你**可以**在 img_prompt 里要求画面出现一个极短的英文标签（1-3个单词，全大写），写在牌子、白板、卡片或标签上，用来点明这一句旁白的核心概念（例如 IMBALANCE、DAY MASTER、FIVE ELEMENTS）。
+
+约束：
+- 整张图最多出现一处文字，且必须用双引号明确写出要渲染的确切词，例如：a small sign with the text "DAY MASTER" written on it in bold capital letters
+- 只能用英文单词，不能写中文，不能写句子、段落或数字编号
+- 这个词必须是真实存在、拼写正确的英文单词或词组
+- 如果这一句旁白比较抽象、想不出合适的短词，就不要放文字，只用箭头/圆圈/下划线这类符号标记"""
 
 
 def _strip_think(content: str) -> str:
@@ -76,15 +93,33 @@ def _extract_prompts(content: str) -> tuple[str, str]:
 
 
 def build_character_prompt(style: Style) -> tuple[str, str]:
-    """返回 (prompt, negative_prompt)，用于生成角色定妆图/画风预览图（不涉及具体场景，只描述角色本体）。"""
-    prompt = f"{style.prompt_suffix}，角色定妆图，正面站立姿势，简洁背景，突出角色本体比例与线条风格"
-    negative_prompt = "，".join(p for p in [style.negative_prompt, "文字，字幕，汉字，英文单词，水印"] if p)
+    """返回 (prompt, negative_prompt)，用于生成角色定妆图/画风预览图（不涉及具体场景，只描述角色本体）。
+
+    文字/水印这些要不要禁止完全交给画风自己的negative_prompt决定，不在这里写死。
+    """
+    # 这张图会作为参考图传给后续每一段分镜，所以必须是干净的角色本体，
+    # 不能出现任何标注文字/箭头/说明——否则那些元素会被后续每张图继承下来
+    prompt = (
+        f"{style.prompt_suffix}\n\n"
+        "Show only the character alone, standing upright facing forward in a neutral pose, "
+        "on a plain empty background. This is a clean character portrait, not an annotated "
+        "reference sheet: no labels, no callout text, no annotation arrows, no captions, "
+        "no measurement lines, no words anywhere in the image."
+    )
+    negative_prompt = style.negative_prompt or ""
     return prompt, negative_prompt
+
+
+def _text_policy(style: Style) -> str:
+    """能准确渲染文字的模型才允许在画面里要求出现文字。"""
+    return TEXT_POLICY_ALLOW_TEXT if style.image_provider == "gemini" else TEXT_POLICY_NO_TEXT
 
 
 async def build_scene_prompt(segment_text: str, style: Style) -> tuple[str, str]:
     """返回 (img_prompt, video_prompt)。LLM调用失败或解析失败时抛出异常，调用方负责降级。"""
-    system_prompt = SYSTEM_PROMPT.replace("__STYLE_ANCHOR__", style.prompt_suffix or "无特殊风格锚点")
+    system_prompt = SYSTEM_PROMPT.replace(
+        "__STYLE_ANCHOR__", style.prompt_suffix or "无特殊风格锚点"
+    ).replace("__TEXT_POLICY__", _text_policy(style))
     user_prompt = f"content: {segment_text}"
 
     raw = await llm_provider.chat(system_prompt, user_prompt)

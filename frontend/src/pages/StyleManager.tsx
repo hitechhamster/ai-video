@@ -6,6 +6,12 @@ const EMPTY_FORM: StyleInput = {
   prompt_suffix: "",
   negative_prompt: "",
   reference_image_url: "",
+  image_provider: "openrouter",
+};
+
+const PROVIDER_LABEL: Record<string, string> = {
+  openrouter: "OpenRouter",
+  gemini: "Gemini",
 };
 
 export default function StyleManager() {
@@ -69,14 +75,15 @@ export default function StyleManager() {
         <h2>画风预设</h2>
         <div className="style-grid">
           {styles.map((s) => {
-            const thumbnailUrl = api.styleThumbnailUrl(s);
+            const thumbnailUrl = api.thumbnailUrl(s.thumbnail);
             return (
               <div key={s.id} className="style-card">
                 {thumbnailUrl && (
                   <img className="style-thumb" src={thumbnailUrl} alt={`${s.name} 预览`} />
                 )}
                 <h4>
-                  {s.name} {s.is_builtin && <span className="tag">内置</span>}
+                  {s.name} {s.is_builtin && <span className="tag">内置</span>}{" "}
+                  <span className="tag">{PROVIDER_LABEL[s.image_provider] ?? s.image_provider}</span>
                 </h4>
                 <p>{s.prompt_suffix}</p>
                 <div className="style-card-actions">
@@ -110,6 +117,24 @@ export default function StyleManager() {
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="例如：赛博朋克火柴人"
             />
+          </label>
+          <label>
+            生图渠道
+            <select
+              value={form.image_provider}
+              onChange={(e) =>
+                setForm({ ...form, image_provider: e.target.value as StyleInput["image_provider"] })
+              }
+            >
+              <option value="openrouter">OpenRouter（配音走 MiniMax）</option>
+              <option value="gemini">Gemini 官方（配音也走 Gemini）</option>
+            </select>
+            <p className="hint">
+              两个渠道都用 Nano Banana（gemini-2.5-flash-image）出图，画面里可以出现拼写正确的英文短标签。
+              {form.image_provider === "gemini"
+                ? " 选 Gemini 官方时配音也用 Gemini 音色，自己闭环。"
+                : " OpenRouter 上没有可用的 TTS，所以配音会回落到 MiniMax。"}
+            </p>
           </label>
           <label>
             风格提示词（会拼接到每段分镜画面提示词后面）

@@ -6,13 +6,10 @@ from pathlib import Path
 from app.config import settings
 from app.db import SessionLocal
 from app.models import Job, Project, Segment
-from app.providers.image.seedream import SeedreamImageProvider
-from app.providers.tts.minimax import MiniMaxTTSProvider
+from app.providers.image import get_image_provider
+from app.providers.tts import get_tts_provider
 from app.services import audio_align, jianying_draft, scene_prompt
 from app.services.script_splitter import split_script
-
-tts_provider = MiniMaxTTSProvider()
-image_provider = SeedreamImageProvider()
 
 
 def _project_dir(project_id: str) -> Path:
@@ -59,15 +56,19 @@ def run_generation(job_id: str) -> None:
         db.commit()
 
         style = project.style
-        negative_prompt = "，".join(
-            p for p in [style.negative_prompt, "文字，字幕，汉字，英文单词，水印"] if p
-        )
+        # 文字/水印这些要不要禁止完全交给每个画风自己的negative_prompt决定，
+        # 不在这里写死——像"小黑怪诞手绘风"就是故意允许极短标签文字的
+        negative_prompt = style.negative_prompt or ""
+        image_provider = get_image_provider(style.image_provider)
+        tts_provider = get_tts_provider(style.image_provider)
 
         # 整段脚本一次性合成配音，保留原有的标点/换行停顿节奏，避免逐句合成的割裂感
         job.current_step = "整段配音合成中"
         db.commit()
         audio_result = asyncio.run(tts_provider.synthesize(project.script, project.voice_id))
-        voice_path = project_dir / "full_voice.mp3"
+        # 扩展名跟着实际格式走：MiniMax 出 mp3，Gemini 出 wav，
+        # 写错扩展名会让剪映拿到一个"名不副实"的音频文件
+        voice_path = project_dir / f"full_voice.{audio_result.format}"
         voice_path.write_bytes(audio_result.audio_bytes)
         total_duration = audio_result.duration_seconds or audio_align.probe_duration(voice_path)
 

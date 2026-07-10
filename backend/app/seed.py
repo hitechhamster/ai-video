@@ -21,7 +21,17 @@ BUILTIN_STYLES = [
         # 从原 Coze 工作流 huochairen_1-draft.yaml 的"图像生成"节点里原样搬过来的画风描述
         "name": "Coze原版彩色火柴人竖屏",
         "prompt_suffix": "Head: Rounded oval head, white filling, large white space on the face, body structure: typical of stickmen, with a torso and limbs formed by slender black lines.",
-        "negative_prompt": "实心黑眼、空心眼、无白底、瞳孔过大、双层瞳孔、写实、3D、干净矢量、完美几何、渐变、照片质感、复杂背景、高饱和卡通、亮面高光眼。",
+        "negative_prompt": "实心黑眼、空心眼、无白底、瞳孔过大、双层瞳孔、写实、3D、干净矢量、完美几何、渐变、照片质感、复杂背景、高饱和卡通、亮面高光眼。文字、字幕、水印、",
+    },
+    {
+        # 参考 github.com/helloianneo/ian-xiaohei-illustrations 的"小黑"IP画风改写，
+        # 原版是16:9纯白正文配图，这里改成竖版构图适配我们的竖屏视频。
+        # 用 gemini（Nano Banana）出图，因为这个画风依赖画面里出现拼写正确的英文短标签，
+        # Seedream 画不出可读文字，只会得到乱码字形。
+        "name": "小黑怪诞手绘风",
+        "image_provider": "gemini",
+        "prompt_suffix": "A small solid black creature character with two round white dot eyes, thin black legs and occasionally thin arms, blank calm serious expression, irregular hand-drawn silhouette, body shaped like a blob, bean, cylinder, box, or shadow. Solid flat black fill with a clean black hand-drawn outline, slightly wobbly sketchy line quality, not mechanical, not vector-clean, no internal shading or texture blotches. The entire image is strictly black, white, and gray only — the background, environment, and all objects stay black-and-white line art on a plain white background, with zero colored backgrounds, zero colored lighting, zero colored scenery. The only color allowed is small red, orange, or blue accent marks: simple arrows, dashes, circles, or underlines. Generous negative space, character occupying only 40-60% of the vertical frame. Loose hand-drawn marker-sketch aesthetic, weird but grounded visual metaphor. This black creature character is always the one and only main character and must physically appear performing the action in every single image, acting out an abstract or literal idea from the scene through an odd invented prop or pose — never replace it with a realistic human, baby, animal, or any photographic subject, no matter how emotional or literal the scene description is. The illustration fills the entire canvas edge to edge with no border, no frame, no picture frame, no browser window chrome, no screen or monitor bezel, no photo of paper on a table or desk, no vignette, no drop shadow around the edges — it is a flat full-bleed digital illustration directly on the white background, not a photograph or scan of a physical object.",
+        "negative_prompt": "cute mascot, children's cartoon, sparkly eyes, complex clothing, commercial illustration, PPT infographic, gradient, texture, glossy, garbled text, illegible scribbles, watermark, realistic human, real person, human baby, real skin, photorealistic face, photograph, portrait, live-action, real body parts, human hands, human eyes, colored background, colored scenery, colored lighting, colorful environment, blue background, warm lighting, sepia, golden light, black border, picture frame, photo frame, framed photo, border around image, vignette edges, browser window, browser chrome, address bar, window UI, screen bezel, monitor frame, paper on table, desk surface, photo of paper, polaroid, picture-in-picture, canvas edge shadow",
     },
 ]
 
@@ -43,8 +53,8 @@ BUILTIN_EFFECT_PRESETS = [
     {
         "name": "经典",
         "description": "白字黑边字幕 + 荧幕噪点，无震动、无转场，稳妥的默认选择",
-        "caption_font": "高字标志圆",
-        "caption_size": 11.0,
+        "caption_font": "新青年体",
+        "caption_size": 8.0,
         "caption_color": "#ffffff",
         "caption_border_color": "#000000",
         "caption_position": -0.83,
@@ -55,8 +65,8 @@ BUILTIN_EFFECT_PRESETS = [
     {
         "name": "电影感",
         "description": "暗角 + 老电影质感 + 叠化转场，弱化震动，更沉稳的叙事氛围",
-        "caption_font": "兰亭圆",
-        "caption_size": 10.0,
+        "caption_font": "新青年体",
+        "caption_size": 8.0,
         "caption_color": "#f5f5f0",
         "caption_border_color": "#000000",
         "caption_position": -0.8,
@@ -70,14 +80,14 @@ BUILTIN_EFFECT_PRESETS = [
     },
     {
         "name": "简洁",
-        "description": "纯字幕，不加任何特效和转场，画面最干净",
-        "caption_font": "高字标志圆",
-        "caption_size": 11.0,
+        "description": "纯字幕 + 漫画撕纸转场，不加特效，画面干净",
+        "caption_font": "新青年体",
+        "caption_size": 8.0,
         "caption_color": "#ffffff",
         "caption_border_color": "#000000",
         "caption_position": -0.83,
         "effects": [],
-        "transition_name": None,
+        "transition_name": "漫画撕纸",
         "zoom_end_scale": 1.05,
     },
 ]

@@ -21,6 +21,7 @@ def _to_out(template: Template) -> TemplateOut:
         created_at=template.created_at,
         style_name=template.style.name,
         music_name=template.music.name if template.music else None,
+        style_thumbnail=template.style.thumbnail,
     )
 
 

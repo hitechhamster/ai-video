@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -9,6 +10,7 @@ class StyleCreate(BaseModel):
     negative_prompt: str = ""
     reference_image_url: str | None = None
     thumbnail: str | None = None
+    image_provider: Literal["openrouter", "gemini"] = "openrouter"
 
 
 class StyleOut(StyleCreate):
@@ -72,6 +74,8 @@ class TemplateOut(TemplateCreate):
     created_at: datetime
     style_name: str
     music_name: str | None = None
+    # 复用画风的"一键生成预览"图当模板卡片封面
+    style_thumbnail: str | None = None
 
 
 class ProjectCreate(BaseModel):

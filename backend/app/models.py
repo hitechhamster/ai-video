@@ -24,6 +24,9 @@ class Style(Base):
     negative_prompt: Mapped[str] = mapped_column(Text, default="")
     reference_image_url: Mapped[str | None] = mapped_column(String, nullable=True)
     thumbnail: Mapped[str | None] = mapped_column(String, nullable=True)
+    # 生图渠道：openrouter（代理的 gemini-2.5-flash-image，配音回落MiniMax）
+    # / gemini（官方直连，配音也走Gemini自己闭环）
+    image_provider: Mapped[str] = mapped_column(String, default="openrouter")
     is_builtin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 

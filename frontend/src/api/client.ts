@@ -12,6 +12,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export type ImageProviderName = "seedream" | "gemini";
+
 export interface Style {
   id: string;
   name: string;
@@ -19,6 +21,7 @@ export interface Style {
   negative_prompt: string;
   reference_image_url: string | null;
   thumbnail: string | null;
+  image_provider: ImageProviderName;
   is_builtin: boolean;
   created_at: string;
 }
@@ -29,6 +32,7 @@ export interface StyleInput {
   negative_prompt: string;
   reference_image_url?: string | null;
   thumbnail?: string | null;
+  image_provider: ImageProviderName;
 }
 
 export interface Voice {
@@ -98,6 +102,7 @@ export interface Template {
   created_at: string;
   style_name: string;
   music_name: string | null;
+  style_thumbnail: string | null;
 }
 
 export interface TemplateInput {
@@ -159,10 +164,12 @@ export const api = {
     request<Style>(`/styles/${id}`, { method: "PUT", body: JSON.stringify(input) }),
   deleteStyle: (id: string) => request<{ ok: boolean }>(`/styles/${id}`, { method: "DELETE" }),
   previewStyle: (id: string) => request<Style>(`/styles/${id}/preview`, { method: "POST" }),
-  styleThumbnailUrl: (style: Style) =>
-    style.thumbnail ? `${BASE_URL}/storage/${style.thumbnail.split(/[\\/]storage[\\/]/).pop()}` : null,
+  /** 把后端存的绝对路径转成可访问的 /storage URL，供画风卡片和模板封面共用 */
+  thumbnailUrl: (thumbnail: string | null) =>
+    thumbnail ? `${BASE_URL}/storage/${thumbnail.split(/[\\/]storage[\\/]/).pop()}` : null,
 
-  listVoices: () => request<Voice[]>("/voices"),
+  listVoices: (imageProvider?: string) =>
+    request<Voice[]>(`/voices${imageProvider ? `?image_provider=${imageProvider}` : ""}`),
 
   listMusic: () => request<Music[]>("/music"),
   uploadMusic: (name: string, file: File) => {

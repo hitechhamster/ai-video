@@ -25,8 +25,8 @@ BGM_FADE_OUT = 1.5
 
 # effect_preset 为空时的兜底默认值，跟内置"经典"预设保持一致
 DEFAULT_PRESET = SimpleNamespace(
-    caption_font="高字标志圆",
-    caption_size=11.0,
+    caption_font="新青年体",
+    caption_size=8.0,
     caption_color="#ffffff",
     caption_border_color="#000000",
     caption_position=-0.83,
@@ -117,7 +117,7 @@ def build_draft(
         color=_hex_to_rgb(preset.caption_color),
         align=1,
         auto_wrapping=True,
-        max_line_width=0.8,
+        max_line_width=0.85,
     )
     caption_border = TextBorder(color=_hex_to_rgb(preset.caption_border_color))
     caption_clip_settings = ClipSettings(transform_y=preset.caption_position)

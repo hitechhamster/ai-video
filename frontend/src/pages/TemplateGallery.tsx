@@ -47,22 +47,28 @@ export default function TemplateGallery() {
       </div>
 
       <div className="template-grid">
-        {templates.map((t) => (
-          <div
-            key={t.id}
-            className="template-card"
-            style={{ background: pick(GRADIENTS, t.id) }}
-            onClick={() => navigate(`/new?template=${t.id}`)}
-          >
-            <div className="template-icon">{pick(ICONS, t.name)}</div>
-            <h3>{t.name}</h3>
-            <p>{t.description}</p>
-            <div className="template-meta">
-              <span>🎨 {t.style_name}</span>
-              {t.music_name && <span>🎵 {t.music_name}</span>}
+        {templates.map((t) => {
+          const coverUrl = api.thumbnailUrl(t.style_thumbnail);
+          return (
+            <div
+              key={t.id}
+              className="template-card"
+              style={{ background: pick(GRADIENTS, t.id) }}
+              onClick={() => navigate(`/new?template=${t.id}`)}
+            >
+              {coverUrl && <img className="template-cover" src={coverUrl} alt="" aria-hidden />}
+              <div className="template-card-body">
+                {!coverUrl && <div className="template-icon">{pick(ICONS, t.name)}</div>}
+                <h3>{t.name}</h3>
+                <p>{t.description}</p>
+                <div className="template-meta">
+                  <span>🎨 {t.style_name}</span>
+                  {t.music_name && <span>🎵 {t.music_name}</span>}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

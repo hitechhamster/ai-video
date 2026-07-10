@@ -52,15 +52,24 @@ export default function NewProject() {
       setStyles(list);
       if (list.length > 0) setStyleId(list[0].id);
     });
-    api
-      .listVoices()
-      .then((list) => {
-        setVoices(list);
-        if (list.length > 0) setVoiceId(list[0].voice_id);
-      })
-      .catch((e) => setVoicesError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId]);
+
+  // 配音渠道跟着画风的生图渠道走，所以换画风要重新拉音色列表
+  const selectedStyle = styles.find((s) => s.id === styleId);
+  const styleProvider = selectedStyle?.image_provider;
+
+  useEffect(() => {
+    if (templateId || !styleProvider) return;
+    setVoicesError(null);
+    api
+      .listVoices(styleProvider)
+      .then((list) => {
+        setVoices(list);
+        setVoiceId(list.length > 0 ? list[0].voice_id : "");
+      })
+      .catch((e) => setVoicesError(e.message));
+  }, [templateId, styleProvider]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,7 +191,9 @@ export default function NewProject() {
             {voicesError ? (
               <>
                 <p className="error">
-                  获取音色列表失败（{voicesError}），请检查后端 .env 里的 MINIMAX_API_KEY，或直接手动输入 voice_id：
+                  获取音色列表失败（{voicesError}），请检查后端 .env 里的{" "}
+                  {styleProvider === "gemini" ? "GEMINI_API_KEY" : "MINIMAX_API_KEY"}
+                  ，或直接手动输入 voice_id：
                 </p>
                 <input
                   value={voiceId}

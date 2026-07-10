@@ -271,6 +271,41 @@ p {
   box-shadow: var(--shadow-lg);
 }
 
+/* 模板封面图：铺满卡片，正文压在底部的渐变遮罩上，保证白字在浅色封面上也读得清 */
+.template-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.template-card-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+/* 有封面时：正文只压在卡片底部一条渐变里，中上部让给插画本身 */
+.template-card:has(.template-cover) {
+  min-height: 300px;
+  padding: 0;
+}
+
+.template-card:has(.template-cover) .template-card-body {
+  padding: 48px 18px 18px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.88) 42%, rgba(0, 0, 0, 0.55) 70%, transparent);
+}
+
+.template-card:has(.template-cover) .template-card-body p {
+  flex: none;
+}
+
 .template-icon {
   font-size: 26px;
 }

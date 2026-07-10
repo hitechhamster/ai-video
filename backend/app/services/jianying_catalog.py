@@ -6,6 +6,7 @@
 import pyJianYingDraft as pyd
 
 CURATED_FONTS = [
+    "新青年体",
     "高字标志圆",
     "优设标题圆",
     "兰亭圆",
@@ -29,6 +30,7 @@ _CURATED_EFFECT_NAMES = [
 ]
 
 CURATED_TRANSITIONS = [
+    ("漫画撕纸", "漫画风格撕纸翻页"),
     ("叠化", "经典淡入淡出"),
     ("闪黑", "黑场过渡，节奏感强"),
     ("模糊", "模糊过渡"),

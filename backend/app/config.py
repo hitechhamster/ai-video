@@ -15,6 +15,16 @@ class Settings(BaseSettings):
     ark_api_key: str = ""
     ark_image_model: str = "doubao-seedream-4-5-251128"
 
+    # Google Gemini (Nano Banana)：画风需要画面里出现准确英文文字时用它，Seedream 画不出可读文字
+    # 注：不要随手换成 gemini-3.1-flash-image，实测它偏写实、英文反而会拼错
+    gemini_api_key: str = ""
+    gemini_image_model: str = "gemini-2.5-flash-image"
+    gemini_tts_model: str = "gemini-2.5-flash-preview-tts"
+
+    # OpenRouter：生图走它代理的 gemini-2.5-flash-image；它没有可用的TTS，所以配音回落到 MiniMax
+    openrouter_api_key: str = ""
+    openrouter_image_model: str = "google/gemini-2.5-flash-image"
+
     # 备用：通义万相适配器仍保留在 providers/image/tongyi_wanxiang.py，如需切换回去要配这个
     dashscope_api_key: str = ""
 
