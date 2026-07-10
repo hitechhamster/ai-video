@@ -22,6 +22,7 @@ export interface Style {
   reference_image_url: string | null;
   thumbnail: string | null;
   image_provider: ImageProviderName;
+  enforce_monochrome: boolean;
   is_builtin: boolean;
   created_at: string;
 }
@@ -33,6 +34,7 @@ export interface StyleInput {
   reference_image_url?: string | null;
   thumbnail?: string | null;
   image_provider: ImageProviderName;
+  enforce_monochrome: boolean;
 }
 
 export interface Voice {
@@ -164,6 +166,13 @@ export const api = {
     request<Style>(`/styles/${id}`, { method: "PUT", body: JSON.stringify(input) }),
   deleteStyle: (id: string) => request<{ ok: boolean }>(`/styles/${id}`, { method: "DELETE" }),
   previewStyle: (id: string) => request<Style>(`/styles/${id}/preview`, { method: "POST" }),
+  uploadStyleReference: (id: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<Style>(`/styles/${id}/reference`, { method: "POST", body: form });
+  },
+  deleteStyleReference: (id: string) =>
+    request<Style>(`/styles/${id}/reference`, { method: "DELETE" }),
   /** 把后端存的绝对路径转成可访问的 /storage URL，供画风卡片和模板封面共用 */
   thumbnailUrl: (thumbnail: string | null) =>
     thumbnail ? `${BASE_URL}/storage/${thumbnail.split(/[\\/]storage[\\/]/).pop()}` : null,

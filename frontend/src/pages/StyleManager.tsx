@@ -5,8 +5,8 @@ const EMPTY_FORM: StyleInput = {
   name: "",
   prompt_suffix: "",
   negative_prompt: "",
-  reference_image_url: "",
   image_provider: "openrouter",
+  enforce_monochrome: false,
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -20,6 +20,7 @@ export default function StyleManager() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [previewingId, setPreviewingId] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   const load = () => api.listStyles().then(setStyles).catch((e) => setError(e.message));
 
@@ -37,6 +38,29 @@ export default function StyleManager() {
       setError((e as Error).message);
     } finally {
       setPreviewingId(null);
+    }
+  };
+
+  const uploadReference = async (id: string, file: File) => {
+    setUploadingId(id);
+    setError(null);
+    try {
+      await api.uploadStyleReference(id, file);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setUploadingId(null);
+    }
+  };
+
+  const removeReference = async (id: string) => {
+    if (!confirm("确定移除这个画风的角色参考图吗？之后生成会改回每次自动生成角色定妆图。")) return;
+    try {
+      await api.deleteStyleReference(id);
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
     }
   };
 
@@ -76,6 +100,7 @@ export default function StyleManager() {
         <div className="style-grid">
           {styles.map((s) => {
             const thumbnailUrl = api.thumbnailUrl(s.thumbnail);
+            const referenceUrl = api.thumbnailUrl(s.reference_image_url);
             return (
               <div key={s.id} className="style-card">
                 {thumbnailUrl && (
@@ -84,8 +109,39 @@ export default function StyleManager() {
                 <h4>
                   {s.name} {s.is_builtin && <span className="tag">内置</span>}{" "}
                   <span className="tag">{PROVIDER_LABEL[s.image_provider] ?? s.image_provider}</span>
+                  {referenceUrl && <span className="tag">已锁定角色</span>}
+                  {s.enforce_monochrome && <span className="tag">强制黑白</span>}
                 </h4>
                 <p>{s.prompt_suffix}</p>
+
+                <div className="style-ref">
+                  {referenceUrl ? (
+                    <>
+                      <img className="style-ref-thumb" src={referenceUrl} alt="角色参考图" />
+                      <div className="style-ref-info">
+                        <span className="hint">每张分镜都以这张图为准，不再自动生成定妆图</span>
+                        <button type="button" className="btn-link danger" onClick={() => removeReference(s.id)}>
+                          移除参考图
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <label className="btn-link style-ref-upload">
+                      {uploadingId === s.id ? "上传中…" : "上传角色参考图"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        disabled={uploadingId === s.id}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadReference(s.id, file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+
                 <div className="style-card-actions">
                   <button
                     type="button"
@@ -153,14 +209,21 @@ export default function StyleManager() {
               placeholder="例如：写实,照片,文字,水印,模糊"
             />
           </label>
-          <label>
-            参考图URL（可选，暂不参与生成，仅作展示）
+          <label className="checkbox-label">
             <input
-              value={form.reference_image_url ?? ""}
-              onChange={(e) => setForm({ ...form, reference_image_url: e.target.value })}
-              placeholder="https://..."
+              type="checkbox"
+              checked={form.enforce_monochrome}
+              onChange={(e) => setForm({ ...form, enforce_monochrome: e.target.checked })}
             />
+            强制纯黑白
           </label>
+          <p className="hint">
+            生图模型对「必须黑白」的服从度不稳定，实测九张里会有三四张背景整片染色。勾上后每张图生成完会自动检测彩度，超标就重新生成。
+          </p>
+
+          <p className="hint">
+            想让某个固定角色出演每一张分镜？先保存画风，再到上面的卡片里「上传角色参考图」。
+          </p>
           {error && <p className="error">{error}</p>}
           <button className="btn" type="submit" disabled={saving}>
             {saving ? "保存中…" : "保存画风"}

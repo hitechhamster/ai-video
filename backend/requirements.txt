@@ -6,3 +6,5 @@ httpx[socks]==0.28.1
 aiofiles==24.1.0
 python-multipart==0.0.20
 pyjianyingdraft==0.3.0
+# 用来检测生成的图有没有违反画风的"必须黑白"约束（见 services/image_guard.py）
+pillow==12.3.0

@@ -11,6 +11,7 @@ class StyleCreate(BaseModel):
     reference_image_url: str | None = None
     thumbnail: str | None = None
     image_provider: Literal["openrouter", "gemini"] = "openrouter"
+    enforce_monochrome: bool = False
 
 
 class StyleOut(StyleCreate):

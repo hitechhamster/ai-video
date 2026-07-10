@@ -1,5 +1,4 @@
 import asyncio
-import base64
 import traceback
 from pathlib import Path
 
@@ -8,7 +7,7 @@ from app.db import SessionLocal
 from app.models import Job, Project, Segment
 from app.providers.image import get_image_provider
 from app.providers.tts import get_tts_provider
-from app.services import audio_align, jianying_draft, scene_prompt
+from app.services import audio_align, image_guard, jianying_draft, scene_prompt
 from app.services.script_splitter import split_script
 
 
@@ -16,10 +15,6 @@ def _project_dir(project_id: str) -> Path:
     path = settings.storage_path / "projects" / project_id
     path.mkdir(parents=True, exist_ok=True)
     return path
-
-
-def _to_data_uri(image_bytes: bytes, mime: str = "image/png") -> str:
-    return f"data:{mime};base64,{base64.b64encode(image_bytes).decode('ascii')}"
 
 
 def run_generation(job_id: str) -> None:
@@ -81,18 +76,31 @@ def run_generation(job_id: str) -> None:
             segment.duration = end - start
         db.commit()
 
-        # 先生成一张角色定妆图，后面每句配图都拿它当参考图，锁定跨分镜的角色一致性
-        job.current_step = "生成角色定妆图"
-        db.commit()
-        character_prompt, _ = scene_prompt.build_character_prompt(style)
-        character_result = asyncio.run(
-            image_provider.generate(character_prompt, negative_prompt=negative_prompt)
-        )
-        character_ref_path = project_dir / "character_ref.png"
-        character_ref_path.write_bytes(character_result.image_bytes)
-        project.character_ref_path = str(character_ref_path)
-        db.commit()
-        character_ref_data_uri = _to_data_uri(character_result.image_bytes)
+        # 后面每句配图都拿一张"角色参考图"做图生图，锁定跨分镜的角色一致性。
+        # 画风上传了固定参考图就直接用它（角色永远锁死、还省一次生图调用）；
+        # 没有的话才现生成一张角色定妆图。
+        character_ref_data_uri = scene_prompt.load_reference_data_uri(style)
+        if character_ref_data_uri:
+            job.current_step = "使用画风的角色参考图"
+            project.character_ref_path = style.reference_image_url
+            db.commit()
+        else:
+            job.current_step = "生成角色定妆图"
+            db.commit()
+            character_prompt, _ = scene_prompt.build_character_prompt(style)
+            character_result = asyncio.run(
+                image_guard.generate_guarded(
+                    image_provider,
+                    character_prompt,
+                    negative_prompt=negative_prompt,
+                    enforce_monochrome=style.enforce_monochrome,
+                )
+            )
+            character_ref_path = project_dir / "character_ref.png"
+            character_ref_path.write_bytes(character_result.image_bytes)
+            project.character_ref_path = str(character_ref_path)
+            db.commit()
+            character_ref_data_uri = scene_prompt.to_data_uri(character_result.image_bytes)
 
         total_steps = len(segments) + 1  # +1 for final draft assembly
         for i, segment in enumerate(segments):
@@ -117,10 +125,12 @@ def run_generation(job_id: str) -> None:
             db.commit()
 
             image_result = asyncio.run(
-                image_provider.generate(
+                image_guard.generate_guarded(
+                    image_provider,
                     img_prompt,
                     negative_prompt=negative_prompt,
                     reference_image_url=character_ref_data_uri,
+                    enforce_monochrome=style.enforce_monochrome,
                 )
             )
             image_path = project_dir / f"segment_{i}.png"

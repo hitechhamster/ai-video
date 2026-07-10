@@ -27,6 +27,9 @@ class Style(Base):
     # 生图渠道：openrouter（代理的 gemini-2.5-flash-image，配音回落MiniMax）
     # / gemini（官方直连，配音也走Gemini自己闭环）
     image_provider: Mapped[str] = mapped_column(String, default="openrouter")
+    # 纯黑白画风勾上它：生成后检测彩度，出彩色就自动重生成
+    # （生图模型对"必须黑白"的服从度不稳定，只靠提示词压不住）
+    enforce_monochrome: Mapped[bool] = mapped_column(Boolean, default=False)
     is_builtin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 

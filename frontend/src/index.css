@@ -573,6 +573,60 @@ p {
   gap: 12px;
 }
 
+/* 角色参考图：挂上后每张分镜都以它为准 */
+.style-ref {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-soft);
+}
+
+.style-ref-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid var(--border-soft);
+  flex: none;
+}
+
+.style-ref-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.style-ref-upload {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.style-ref-upload input[type="file"] {
+  display: none;
+}
+
+.form .checkbox-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.form .checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: var(--text-h);
+  cursor: pointer;
+}
+
 .tag {
   font-size: 10px;
   color: var(--text-h);
