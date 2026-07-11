@@ -104,6 +104,7 @@ async def generate_style_preview(style_id: str, db: Session = Depends(get_db)):
             negative_prompt=negative_prompt,
             reference_image_url=reference_uri,
             enforce_monochrome=style.enforce_monochrome,
+            enforce_color=style.enforce_color,
         )
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"预览生成失败: {exc}") from exc

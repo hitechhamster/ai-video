@@ -94,6 +94,7 @@ def run_generation(job_id: str) -> None:
                     character_prompt,
                     negative_prompt=negative_prompt,
                     enforce_monochrome=style.enforce_monochrome,
+                    enforce_color=style.enforce_color,
                 )
             )
             character_ref_path = project_dir / "character_ref.png"
@@ -131,6 +132,7 @@ def run_generation(job_id: str) -> None:
                     negative_prompt=negative_prompt,
                     reference_image_url=character_ref_data_uri,
                     enforce_monochrome=style.enforce_monochrome,
+                    enforce_color=style.enforce_color,
                 )
             )
             image_path = project_dir / f"segment_{i}.png"

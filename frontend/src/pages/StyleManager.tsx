@@ -7,6 +7,7 @@ const EMPTY_FORM: StyleInput = {
   negative_prompt: "",
   image_provider: "openrouter",
   enforce_monochrome: false,
+  enforce_color: false,
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -111,6 +112,7 @@ export default function StyleManager() {
                   <span className="tag">{PROVIDER_LABEL[s.image_provider] ?? s.image_provider}</span>
                   {referenceUrl && <span className="tag">已锁定角色</span>}
                   {s.enforce_monochrome && <span className="tag">强制黑白</span>}
+                  {s.enforce_color && <span className="tag">强制上色</span>}
                 </h4>
                 <p>{s.prompt_suffix}</p>
 
@@ -213,12 +215,33 @@ export default function StyleManager() {
             <input
               type="checkbox"
               checked={form.enforce_monochrome}
-              onChange={(e) => setForm({ ...form, enforce_monochrome: e.target.checked })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  enforce_monochrome: e.target.checked,
+                  // 黑白与上色互斥，勾一个就把另一个取消
+                  enforce_color: e.target.checked ? false : form.enforce_color,
+                })
+              }
             />
             强制纯黑白
           </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={form.enforce_color}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  enforce_color: e.target.checked,
+                  enforce_monochrome: e.target.checked ? false : form.enforce_monochrome,
+                })
+              }
+            />
+            强制上色
+          </label>
           <p className="hint">
-            生图模型对「必须黑白」的服从度不稳定，实测九张里会有三四张背景整片染色。勾上后每张图生成完会自动检测彩度，超标就重新生成。
+            生图模型对颜色约束的服从度都不稳定。勾「强制纯黑白」时，出彩色就自动重生成；勾「强制上色」时，画面掉成灰阶就自动重生成。两者互斥，实测九张里各有三四张会跑偏，靠生成后检测彩度兜底。
           </p>
 
           <p className="hint">

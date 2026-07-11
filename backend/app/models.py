@@ -30,6 +30,8 @@ class Style(Base):
     # 纯黑白画风勾上它：生成后检测彩度，出彩色就自动重生成
     # （生图模型对"必须黑白"的服从度不稳定，只靠提示词压不住）
     enforce_monochrome: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 彩色画风勾上它：饱和度太低（画面掉成灰阶）就自动重生成，跟上面的黑白约束互为反面
+    enforce_color: Mapped[bool] = mapped_column(Boolean, default=False)
     is_builtin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 

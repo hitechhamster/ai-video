@@ -1,5 +1,7 @@
+import asyncio
 import base64
 import io
+import re
 import wave
 
 import httpx
@@ -24,6 +26,19 @@ VOICES = [
 ]
 DEFAULT_VOICE = "charon"
 
+# 整段脚本合成时，接口会高频返回 finishReason=OTHER 且不带音频——文本越长越容易触发，
+# 长段落连试 8 次都失败并不罕见。但单句/短块几乎 100% 成功，所以策略是"化整为零"：
+# 把脚本按句拆成小块逐块合成，再把 PCM 拼起来。块内仍保留少量重试兜底偶发波动。
+_MAX_ATTEMPTS = 10
+_RETRY_BACKOFF = 2.5
+
+# 每块的字符预算：一句一块最稳（实测越短越不容易触发空音频），
+# 短句才并块，避免调用次数爆炸
+_MAX_CHUNK_CHARS = 100
+
+# 块与块之间垫一小段静音，既让配音听起来有句读停顿，也给下游按静音切分留清晰的断点
+_GAP_SECONDS = 0.28
+
 
 def _parse_rate(mime_type: str) -> int:
     """从 'audio/L16;codec=pcm;rate=24000' 里抠出采样率。"""
@@ -35,6 +50,34 @@ def _parse_rate(mime_type: str) -> int:
             except ValueError:
                 break
     return _DEFAULT_RATE
+
+
+def _split_chunks(text: str, max_chars: int = _MAX_CHUNK_CHARS) -> list[str]:
+    """按句末标点把脚本拆成小块，再把相邻短句贪心并到一起，尽量凑满 max_chars。
+
+    单块越短，Gemini TTS 越不容易返回空音频；但也不必一句一次调用，
+    所以在不超预算的前提下把连续短句合并，减少调用次数。
+    """
+    # 在句末标点后切开，保留标点
+    sentences = [s for s in re.split(r"(?<=[。！？.!?;；])\s*", text.strip()) if s]
+    if not sentences:
+        return [text.strip()] if text.strip() else []
+
+    chunks: list[str] = []
+    current = ""
+    for sentence in sentences:
+        if current and len(current) + len(sentence) + 1 > max_chars:
+            chunks.append(current.strip())
+            current = sentence
+        else:
+            current = f"{current} {sentence}".strip() if current else sentence
+    if current.strip():
+        chunks.append(current.strip())
+    return chunks
+
+
+def _silence_pcm(seconds: float, rate: int) -> bytes:
+    return b"\x00" * int(seconds * rate) * _PCM_CHANNELS * _PCM_SAMPLE_WIDTH
 
 
 def _pcm_to_wav(pcm: bytes, rate: int) -> bytes:
@@ -65,11 +108,10 @@ class GeminiTTSProvider(TTSProvider):
     def _headers(self) -> dict:
         return {"x-goog-api-key": self._api_key, "Content-Type": "application/json"}
 
-    async def synthesize(self, text: str, voice_id: str) -> AudioResult:
-        voice = (voice_id or DEFAULT_VOICE).lower()
-        if voice not in VOICES:
-            voice = DEFAULT_VOICE
-
+    async def _synthesize_chunk(
+        self, client: httpx.AsyncClient, text: str, voice: str
+    ) -> tuple[bytes, int]:
+        """合成单个文本块，返回 (PCM, 采样率)。块内对偶发空音频做少量重试。"""
         payload = {
             "contents": [{"parts": [{"text": text}]}],
             "generationConfig": {
@@ -77,31 +119,53 @@ class GeminiTTSProvider(TTSProvider):
                 "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": voice}}},
             },
         }
-
         url = f"{API_BASE}/{self._model}:generateContent"
-        async with httpx.AsyncClient(timeout=300) as client:
+        last_finish_reason = None
+        for attempt in range(_MAX_ATTEMPTS):
             resp = await client.post(url, headers=self._headers(), json=payload)
             if resp.status_code != 200:
                 raise RuntimeError(f"Gemini TTS 失败: {resp.status_code} {resp.text[:500]}")
-            body = resp.json()
 
-        candidates = body.get("candidates") or []
-        if not candidates:
-            raise RuntimeError(f"Gemini TTS 无候选结果: {str(body)[:500]}")
+            candidates = resp.json().get("candidates") or []
+            if candidates:
+                for part in candidates[0].get("content", {}).get("parts", []):
+                    inline = part.get("inlineData")
+                    if not (inline and inline.get("data")):
+                        continue
+                    pcm = base64.b64decode(inline["data"])
+                    return pcm, _parse_rate(inline.get("mimeType", ""))
+                last_finish_reason = candidates[0].get("finishReason")
 
-        for part in candidates[0].get("content", {}).get("parts", []):
-            inline = part.get("inlineData")
-            if not (inline and inline.get("data")):
-                continue
-            pcm = base64.b64decode(inline["data"])
-            rate = _parse_rate(inline.get("mimeType", ""))
-            duration = len(pcm) / (rate * _PCM_CHANNELS * _PCM_SAMPLE_WIDTH)
-            return AudioResult(
-                audio_bytes=_pcm_to_wav(pcm, rate), duration_seconds=duration, format="wav"
-            )
+            if attempt < _MAX_ATTEMPTS - 1:
+                await asyncio.sleep(_RETRY_BACKOFF)
 
-        finish_reason = candidates[0].get("finishReason")
-        raise RuntimeError(f"Gemini TTS 返回结果里没有音频 (finishReason={finish_reason})")
+        raise RuntimeError(
+            f"Gemini TTS 连续 {_MAX_ATTEMPTS} 次都没返回音频 (finishReason={last_finish_reason})"
+        )
+
+    async def synthesize(self, text: str, voice_id: str) -> AudioResult:
+        voice = (voice_id or DEFAULT_VOICE).lower()
+        if voice not in VOICES:
+            voice = DEFAULT_VOICE
+
+        chunks = _split_chunks(text)
+        if not chunks:
+            raise RuntimeError("Gemini TTS 收到空文本")
+
+        pieces: list[bytes] = []
+        rate = _DEFAULT_RATE
+        async with httpx.AsyncClient(timeout=300) as client:
+            for i, chunk in enumerate(chunks):
+                pcm, rate = await self._synthesize_chunk(client, chunk, voice)
+                if i > 0:
+                    pieces.append(_silence_pcm(_GAP_SECONDS, rate))
+                pieces.append(pcm)
+
+        full_pcm = b"".join(pieces)
+        duration = len(full_pcm) / (rate * _PCM_CHANNELS * _PCM_SAMPLE_WIDTH)
+        return AudioResult(
+            audio_bytes=_pcm_to_wav(full_pcm, rate), duration_seconds=duration, format="wav"
+        )
 
     async def list_voices(self) -> list[dict]:
         return [{"voice_id": v, "voice_name": v.capitalize()} for v in VOICES]

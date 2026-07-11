@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 # 而背景只是淡淡一层灰蓝的边界样本是 14.3——取 12 能把两类干净分开。
 MAX_AVG_SATURATION = 12.0
 
+# 彩色画风的下限：允许颜色但不强制时，Gemini 会随机把几张退成灰/棕墨色。
+# 实测同一批里满色的落在 40-76，退色的落在 0.8-10.5——取 15 能把"明显掉色"的挑出来，
+# 又给"柔和水彩"这种低饱和但确实有色的画面留了余地。
+MIN_AVG_SATURATION = 15.0
+
 # 重试次数。实测单张漏色概率约 1/3，重试2次后仍全部漏色的概率不到 4%。
 MAX_RETRIES = 2
 
@@ -36,32 +41,41 @@ def is_monochrome(image_bytes: bytes) -> bool:
     return average_saturation(image_bytes) <= MAX_AVG_SATURATION
 
 
+def _violates(saturation: float, enforce_monochrome: bool, enforce_color: bool) -> str | None:
+    """返回违规原因（给日志用），合格返回 None。"""
+    if enforce_monochrome and saturation > MAX_AVG_SATURATION:
+        return f"违反黑白约束 (平均饱和度 {saturation:.1f} > {MAX_AVG_SATURATION})"
+    if enforce_color and saturation < MIN_AVG_SATURATION:
+        return f"上色不足、接近灰阶 (平均饱和度 {saturation:.1f} < {MIN_AVG_SATURATION})"
+    return None
+
+
 async def generate_guarded(
     provider: ImageProvider,
     prompt: str,
     negative_prompt: str = "",
     reference_image_url: str | None = None,
     enforce_monochrome: bool = False,
+    enforce_color: bool = False,
 ) -> ImageResult:
     """按画风的约束生成图片，不合格就重试。
 
-    目前只管"必须黑白"这一条——它是唯一能被程序可靠判定、且模型确实经常违反的约束。
-    重试用尽后返回最后一次的结果（宁可出一张有色的，也不要整个生成任务失败）。
+    两条互斥的约束都靠同一个平均饱和度指标判定：
+    - enforce_monochrome：必须黑白，饱和度超上限就重生成；
+    - enforce_color：必须有色，饱和度低于下限（画面掉成灰阶）就重生成。
+    重试用尽后返回最后一次的结果（宁可出一张不达标的，也不要整个生成任务失败）。
     """
     result = await provider.generate(
         prompt, negative_prompt=negative_prompt, reference_image_url=reference_image_url
     )
-    if not enforce_monochrome:
+    if not (enforce_monochrome or enforce_color):
         return result
 
     for attempt in range(MAX_RETRIES):
-        saturation = average_saturation(result.image_bytes)
-        if saturation <= MAX_AVG_SATURATION:
+        reason = _violates(average_saturation(result.image_bytes), enforce_monochrome, enforce_color)
+        if reason is None:
             return result
-        logger.warning(
-            "画面违反黑白约束 (平均饱和度 %.1f > %.1f)，重新生成 (%d/%d)",
-            saturation, MAX_AVG_SATURATION, attempt + 1, MAX_RETRIES,
-        )
+        logger.warning("画面%s，重新生成 (%d/%d)", reason, attempt + 1, MAX_RETRIES)
         result = await provider.generate(
             prompt, negative_prompt=negative_prompt, reference_image_url=reference_image_url
         )

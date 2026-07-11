@@ -23,6 +23,7 @@ export interface Style {
   thumbnail: string | null;
   image_provider: ImageProviderName;
   enforce_monochrome: boolean;
+  enforce_color: boolean;
   is_builtin: boolean;
   created_at: string;
 }
@@ -35,6 +36,7 @@ export interface StyleInput {
   thumbnail?: string | null;
   image_provider: ImageProviderName;
   enforce_monochrome: boolean;
+  enforce_color: boolean;
 }
 
 export interface Voice {
