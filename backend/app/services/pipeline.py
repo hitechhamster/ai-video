@@ -57,24 +57,37 @@ def run_generation(job_id: str) -> None:
         image_provider = get_image_provider(style.image_provider)
         tts_provider = get_tts_provider(style.image_provider)
 
-        # 整段脚本一次性合成配音，保留原有的标点/换行停顿节奏，避免逐句合成的割裂感
-        job.current_step = "整段配音合成中"
+        # 配音合成。优先走"逐段合成"——每个字幕段单独合成、直接拿到精确时长，
+        # 字幕/画面切点就能跟旁白严丝合缝；provider不支持时回落到"整段合成+静音检测切分"。
+        job.current_step = "配音合成中"
         db.commit()
-        audio_result = asyncio.run(tts_provider.synthesize(project.script, project.voice_id))
-        # 扩展名跟着实际格式走：MiniMax 出 mp3，Gemini 出 wav，
-        # 写错扩展名会让剪映拿到一个"名不副实"的音频文件
-        voice_path = project_dir / f"full_voice.{audio_result.format}"
-        voice_path.write_bytes(audio_result.audio_bytes)
-        total_duration = audio_result.duration_seconds or audio_align.probe_duration(voice_path)
+        segmented = asyncio.run(tts_provider.synthesize_segments(texts, project.voice_id))
+        if segmented is not None:
+            voice_path = project_dir / f"full_voice.{segmented.format}"
+            voice_path.write_bytes(segmented.audio_bytes)
+            cursor = 0.0
+            for segment, dur in zip(segments, segmented.durations):
+                segment.start_offset = cursor
+                segment.duration = dur
+                cursor += dur
+            total_duration = cursor
+            db.commit()
+        else:
+            audio_result = asyncio.run(tts_provider.synthesize(project.script, project.voice_id))
+            # 扩展名跟着实际格式走：MiniMax 出 mp3，Gemini 出 wav，
+            # 写错扩展名会让剪映拿到一个"名不副实"的音频文件
+            voice_path = project_dir / f"full_voice.{audio_result.format}"
+            voice_path.write_bytes(audio_result.audio_bytes)
+            total_duration = audio_result.duration_seconds or audio_align.probe_duration(voice_path)
 
-        # 用静音检测把整段配音切回每句的时间线（检测点不够时会自动降级为按字数比例切）
-        job.current_step = "按停顿切分句子时间线"
-        db.commit()
-        boundaries = audio_align.split_by_silence(voice_path, texts)
-        for segment, (start, end) in zip(segments, boundaries):
-            segment.start_offset = start
-            segment.duration = end - start
-        db.commit()
+            # 用静音检测把整段配音切回每句的时间线（检测点不够时会自动降级为按字数比例切）
+            job.current_step = "按停顿切分句子时间线"
+            db.commit()
+            boundaries = audio_align.split_by_silence(voice_path, texts)
+            for segment, (start, end) in zip(segments, boundaries):
+                segment.start_offset = start
+                segment.duration = end - start
+            db.commit()
 
         # 后面每句配图都拿一张"角色参考图"做图生图，锁定跨分镜的角色一致性。
         # 画风上传了固定参考图就直接用它（角色永远锁死、还省一次生图调用）；

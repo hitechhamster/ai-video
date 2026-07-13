@@ -7,7 +7,7 @@ import wave
 import httpx
 
 from app.config import settings
-from app.providers.base import AudioResult, TTSProvider
+from app.providers.base import AudioResult, SegmentedAudioResult, TTSProvider
 
 API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
@@ -165,6 +165,42 @@ class GeminiTTSProvider(TTSProvider):
         duration = len(full_pcm) / (rate * _PCM_CHANNELS * _PCM_SAMPLE_WIDTH)
         return AudioResult(
             audio_bytes=_pcm_to_wav(full_pcm, rate), duration_seconds=duration, format="wav"
+        )
+
+    async def synthesize_segments(
+        self, texts: list[str], voice_id: str
+    ) -> SegmentedAudioResult:
+        """逐个字幕段合成，返回整段音频 + 每段精确时长。
+
+        每段单独合成（段内若过长再拆块），段与段之间垫一小段静音；每段的时长 = 它自己
+        的语音 + 尾部那段静音。这样字幕/画面切点直接用这些时长排布，跟旁白严丝合缝，
+        不再需要静音检测去猜边界。
+        """
+        voice = (voice_id or DEFAULT_VOICE).lower()
+        if voice not in VOICES:
+            voice = DEFAULT_VOICE
+
+        gap = _silence_pcm(_GAP_SECONDS, _DEFAULT_RATE)
+        pieces: list[bytes] = []
+        durations: list[float] = []
+        bytes_per_sec = _DEFAULT_RATE * _PCM_CHANNELS * _PCM_SAMPLE_WIDTH
+
+        async with httpx.AsyncClient(timeout=300) as client:
+            for i, text in enumerate(texts):
+                chunks = _split_chunks(text) or [text]
+                seg_pcm = b""
+                for chunk in chunks:
+                    pcm, _ = await self._synthesize_chunk(client, chunk, voice)
+                    seg_pcm += pcm
+                # 除最后一段外，尾部都带一段静音停顿，并计入本段时长
+                if i < len(texts) - 1:
+                    seg_pcm += gap
+                pieces.append(seg_pcm)
+                durations.append(len(seg_pcm) / bytes_per_sec)
+
+        full_pcm = b"".join(pieces)
+        return SegmentedAudioResult(
+            audio_bytes=_pcm_to_wav(full_pcm, _DEFAULT_RATE), durations=durations, format="wav"
         )
 
     async def list_voices(self) -> list[dict]:
