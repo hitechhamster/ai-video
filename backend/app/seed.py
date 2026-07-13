@@ -30,6 +30,9 @@ BUILTIN_STYLES = [
         # Seedream 画不出可读文字，只会得到乱码字形。
         "name": "小黑怪诞手绘风",
         "image_provider": "gemini",
+        # 这个画风必须黑白（只留极小面积的红/橙/蓝点缀），生图模型对此服从度不稳，
+        # 靠生成后检测平均饱和度、超标重生成来兜底
+        "enforce_monochrome": True,
         "prompt_suffix": "A small solid black creature character with two round white dot eyes, thin black legs and occasionally thin arms, blank calm serious expression, irregular hand-drawn silhouette, body shaped like a blob, bean, cylinder, box, or shadow. Solid flat black fill with a clean black hand-drawn outline, slightly wobbly sketchy line quality, not mechanical, not vector-clean, no internal shading or texture blotches. The entire image is strictly black, white, and gray only — the background, environment, and all objects stay black-and-white line art on a plain white background, with zero colored backgrounds, zero colored lighting, zero colored scenery. The only color allowed is small red, orange, or blue accent marks: simple arrows, dashes, circles, or underlines. Generous negative space, character occupying only 40-60% of the vertical frame. Loose hand-drawn marker-sketch aesthetic, weird but grounded visual metaphor. This black creature character is always the one and only main character and must physically appear performing the action in every single image, acting out an abstract or literal idea from the scene through an odd invented prop or pose — never replace it with a realistic human, baby, animal, or any photographic subject, no matter how emotional or literal the scene description is. The illustration fills the entire canvas edge to edge with no border, no frame, no picture frame, no browser window chrome, no screen or monitor bezel, no photo of paper on a table or desk, no vignette, no drop shadow around the edges — it is a flat full-bleed digital illustration directly on the white background, not a photograph or scan of a physical object.",
         "negative_prompt": "cute mascot, children's cartoon, sparkly eyes, complex clothing, commercial illustration, PPT infographic, gradient, texture, glossy, garbled text, illegible scribbles, watermark, realistic human, real person, human baby, real skin, photorealistic face, photograph, portrait, live-action, real body parts, human hands, human eyes, colored background, colored scenery, colored lighting, colorful environment, blue background, warm lighting, sepia, golden light, black border, picture frame, photo frame, framed photo, border around image, vignette edges, browser window, browser chrome, address bar, window UI, screen bezel, monitor frame, paper on table, desk surface, photo of paper, polaroid, picture-in-picture, canvas edge shadow",
     },
@@ -116,6 +119,15 @@ BUILTIN_TEMPLATES = [
         "style_name": "Coze原版彩色火柴人竖屏",
         "voice_id": "English_Trustworthy_Man",
         "effect_preset_name": "经典",
+    },
+    {
+        # 小黑 IP 黑白手绘风 + Gemini 自带 charon 音色 + 漫画撕纸转场。
+        # 画风走 gemini，配音也走 gemini 自己闭环（charon），一个 GEMINI_API_KEY 全包。
+        "name": "小黑怪诞手绘风",
+        "description": "小黑 IP 黑白手绘画风 + Gemini charon 音色 + 漫画撕纸转场，强制黑白",
+        "style_name": "小黑怪诞手绘风",
+        "voice_id": "charon",
+        "effect_preset_name": "简洁",
     },
 ]
 
