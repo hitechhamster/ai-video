@@ -123,7 +123,7 @@ def run_generation(job_id: str) -> None:
 
             try:
                 img_prompt, video_prompt_text = asyncio.run(
-                    scene_prompt.build_scene_prompt(segment.text, style)
+                    scene_prompt.build_scene_prompt(segment.text, style, index=i)
                 )
                 segment.video_prompt = video_prompt_text
             except Exception:  # noqa: BLE001

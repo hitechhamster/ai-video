@@ -74,11 +74,17 @@ VIDEO_PROMPT: 5秒场景：主体<动作>，图解<变化>，镜头<轻微运动
 判断标准：如果这张图没有传达出这句话**特有的信息**（换句话说，配别的旁白也毫无违和），说明它太空泛了，重写。
 
 具体做法（每张图至少做到其中3条）：
-- 主体永远是**从容的讲解者**：他在指、在展示、在演示、在举起某个道具、在对比两样东西。表情从容、专注、了然，讲到重点时可以有强调的手势——**但绝不痛苦、绝望、被压垮、被巨物碾压**。这是知识分享，不是苦难现场。
-- 把这句话的核心概念画成一个**清楚的视觉图解**：符号、简单的关系箭头、并排对比、前后对照、剖面示意图。
-- 用**具体可辨的物件**承载抽象概念，并让主体的手势明确指向它、或把它摆在他面前展示。
-- 需要区分或对比时，用**并排/左右对照**的布局：这样 vs 那样、强 vs 弱、之前 vs 之后。
-- 保持信息**清楚而不拥挤**：宁可一张图讲透一个点，也不要塞满一堆看不懂的元素。
+- 主体是**从容的讲解者**：他在指、在展示、在演示、在举起某个道具、在对比两样东西。表情从容、专注、了然——**但绝不痛苦、绝望、被压垮**。这是知识分享，不是苦难现场。
+- **画面必须填满，严禁大片空白**：多用相关的图元把画面铺开——多个元素符号、连接的箭头、铺到底部的地面/桌面、周围相关的小物、背景的淡淡示意。哪怕是黑白线稿，也要有信息密度，绝不能是"一个小人飘在大片白底里"。
+- 把这句话的核心概念画成**清楚的视觉图解**：符号、关系箭头、并排对比、前后对照、剖面示意图。
+- **每一段的镜头类型都要换着来**（见下方「镜头类型」），别每张都是"先生站中间指一下"。用户会给你一个"本段建议镜头"，优先照它来，除非这句内容明显更适合别的。
+
+## 镜头类型（每段挑一种，尽量和相邻段不同；主体大小/位置随之变化）
+- **全景讲解**：先生在一个铺满画面、能说明这句的环境或大图解中讲解，人物中等大小，环境延伸到四边
+- **道具特写**：只画先生的手和道具/图解，道具密集撑满画面（人物半入镜或只见手），几乎没有留白
+- **大图解为主**：先生站在画面一侧，一个大的图解/符号/剖面占据画面主体，箭头和标注铺开
+- **桌面俯视**：从上往下看一张桌面/地面，摆开一排代表概念的物件，先生的手从边缘指点或摆放
+- **左右对比**：画面左右分成两半对照（强 vs 弱、之前 vs 之后、缺 vs 补），先生居中作分隔或在一侧点评
 
 ## img_prompt 撰写规则（固定顺序）
 
@@ -95,7 +101,7 @@ VIDEO_PROMPT: 5秒场景：主体<动作>，图解<变化>，镜头<轻微运动
 
 4. 环境与道具（约20%）：环境为**教学服务**——一块可画图的黑板或地面、摆放着代表概念的物件、一间可供讲解的房子剖面。道具清楚可辨、和讲解内容直接相关，不要无关的戏剧性破坏（龟裂、塌陷、飞尘这些留给别的系列）。
 
-5. 构图（约15%）：**画面要填满**，主体连同他正在讲解的图解一起撑满竖幅，从上边缘到下边缘，图解元素铺到画面四角。但机位以**"看得清"为先**——正面或轻微角度、平视或非常轻微的角度，不要夸张俯仰。主体占画面 40-60%，给图解留出清楚的位置。
+5. 构图（约15%）：**画面必须填满、严禁大片空白**——图解、符号、箭头、物件、地面/桌面一起铺到竖幅的四个边缘。机位以"看得清"为先（不用夸张俯仰），但主体的**大小和位置要随本段镜头类型变化**：特写时只见手和道具、道具占满画面；全景时人物中等、环境撑满；大图解时人物偏一侧、图解占主体。**不要每张都把先生摆在正中间**。
 
 6. 风格锚点（约15%，完全固定，不要改写）：
 __STYLE_ANCHOR__
@@ -199,12 +205,23 @@ _COMPOSITION_SUFFIX_DRAMA = (
     "small isolated figure floating in the middle of empty space."
 )
 _COMPOSITION_SUFFIX_TEACHING = (
-    " Composition: the scene is full-bleed and fills the entire vertical frame edge to edge — "
-    "the teacher and the diagram or objects he is explaining extend toward all four edges of the "
-    "canvas. He is calmly presenting and pointing at the concept, clearly demonstrating it like a "
-    "patient teacher — he is never in distress, never crushed, suffering, or overwhelmed, and never "
-    "a small isolated figure floating in empty space."
+    " Composition: fill the entire vertical frame edge to edge with informative line-art content — "
+    "the diagram, symbols, arrows, objects, and a ground or table surface spread out and reach all "
+    "four edges, leaving no large blank white areas. Vary the teacher's scale and placement to match "
+    "the shot (sometimes only his hands and the props in tight close-up filling the frame, sometimes "
+    "a mid-size figure off to one side of a large diagram) — do not default to a small centered figure "
+    "floating in empty white space. He is a calm presenter, never in distress or crushed."
 )
+
+
+# teaching模式下按分镜序号机械轮换镜头类型，保证相邻段不重样（光靠LLM会每张都画成"站着指"）
+_TEACHING_SHOT_CYCLE = [
+    "全景讲解（先生中等大小在铺满画面的环境/图解中讲解，环境延伸到四边）",
+    "道具特写（只画先生的手和道具/图解，道具密集撑满画面，几乎没有留白）",
+    "大图解为主（先生偏画面一侧，一个大图解/剖面占据主体，箭头标注铺开）",
+    "左右对比（画面左右分两半对照，先生居中作分隔或在一侧点评）",
+    "桌面俯视（从上往下看桌面/地面摆开一排概念物件，先生的手从边缘指点）",
+]
 
 
 def _system_prompt(style: Style) -> tuple[str, str]:
@@ -214,13 +231,19 @@ def _system_prompt(style: Style) -> tuple[str, str]:
     return SYSTEM_PROMPT_DRAMA, _COMPOSITION_SUFFIX_DRAMA
 
 
-async def build_scene_prompt(segment_text: str, style: Style) -> tuple[str, str]:
-    """返回 (img_prompt, video_prompt)。LLM调用失败或解析失败时抛出异常，调用方负责降级。"""
+async def build_scene_prompt(segment_text: str, style: Style, index: int = 0) -> tuple[str, str]:
+    """返回 (img_prompt, video_prompt)。LLM调用失败或解析失败时抛出异常，调用方负责降级。
+
+    index 是分镜序号：teaching模式据此轮换建议镜头类型，让整条视频的画面穿插多样。
+    """
     template, composition_suffix = _system_prompt(style)
     system_prompt = template.replace(
         "__STYLE_ANCHOR__", style.prompt_suffix or "无特殊风格锚点"
     ).replace("__TEXT_POLICY__", _text_policy(style))
     user_prompt = f"content: {segment_text}"
+    if style.scene_mode == "teaching":
+        shot = _TEACHING_SHOT_CYCLE[index % len(_TEACHING_SHOT_CYCLE)]
+        user_prompt = f"本段建议镜头：{shot}\n{user_prompt}"
 
     llm_provider = get_llm_provider(style.image_provider)
     raw = await llm_provider.chat(system_prompt, user_prompt)
