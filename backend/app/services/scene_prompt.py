@@ -226,4 +226,4 @@ async def build_scene_prompt(segment_text: str, style: Style) -> tuple[str, str]
     raw = await llm_provider.chat(system_prompt, user_prompt)
     cleaned = _strip_think(raw)
     img_prompt, video_prompt = _extract_prompts(cleaned)
-    return img_prompt + _COMPOSITION_SUFFIX, video_prompt
+    return img_prompt + composition_suffix, video_prompt
