@@ -6,7 +6,7 @@ from pathlib import Path
 from app.models import Style
 from app.providers.llm import get_llm_provider
 
-SYSTEM_PROMPT = """你是一名"情感可视化脚本工程师"，负责把单句场景旁白压缩成两段可以直接喂给生图模型(img_prompt)和轻动画模型(video_prompt)的提示词。
+SYSTEM_PROMPT_DRAMA = """你是一名"情感可视化脚本工程师"，负责把单句场景旁白压缩成两段可以直接喂给生图模型(img_prompt)和轻动画模型(video_prompt)的提示词。
 
 ## 输出格式（严格按下面两行输出，不要用JSON、不要用代码块、不要输出任何多余的解释文字）
 IMG_PROMPT: 场景主体+表情姿态+配角描述+环境元素+色彩构图+风格锚点（写成一段连贯文字）
@@ -60,6 +60,60 @@ __STYLE_ANCHOR__
 __TEXT_POLICY__
 
 重要：上面几条规则(1-6)里出现的中文词汇（如"构图"、"环境与道具"、"表情与肢体"等）只是给你解释规则用的，不是要你原样抄进输出里。如果你决定用英文撰写这一句img_prompt，那么从头到尾都必须是英文，包括环境、道具、构图这几部分也要翻译成英文描述（例如"cracked earth splitting beneath his feet, dust flying"、"composition: low angle, subject leaning hard against the frame"），不能保留任何中文字词或中文标点。写完后自查一遍，确认没有遗漏的汉字。"""
+
+SYSTEM_PROMPT_TEACHING = """你是一名"知识可视化脚本工程师"，负责把单句教学旁白压缩成两段可以直接喂给生图模型(img_prompt)和轻动画模型(video_prompt)的提示词。这是一个知识科普系列，主体是一位从容的讲解者。
+
+## 输出格式（严格按下面两行输出，不要用JSON、不要用代码块、不要输出任何多余的解释文字）
+IMG_PROMPT: 讲解场景+主体姿态表情+图解元素+环境道具+构图+风格锚点（写成一段连贯文字）
+VIDEO_PROMPT: 5秒场景：主体<动作>，图解<变化>，镜头<轻微运动>，转场描述（写成一段连贯文字）
+
+## 首要目标：把这一句"讲清楚"
+
+每一张图都是一幅**讲得清楚的示意图**，像教科书插画、或老师在黑板前的一次演示。观众光看这一格画面，就应该学到这句旁白讲的那个知识点。
+
+判断标准：如果这张图没有传达出这句话**特有的信息**（换句话说，配别的旁白也毫无违和），说明它太空泛了，重写。
+
+具体做法（每张图至少做到其中3条）：
+- 主体永远是**从容的讲解者**：他在指、在展示、在演示、在举起某个道具、在对比两样东西。表情从容、专注、了然，讲到重点时可以有强调的手势——**但绝不痛苦、绝望、被压垮、被巨物碾压**。这是知识分享，不是苦难现场。
+- 把这句话的核心概念画成一个**清楚的视觉图解**：符号、简单的关系箭头、并排对比、前后对照、剖面示意图。
+- 用**具体可辨的物件**承载抽象概念，并让主体的手势明确指向它、或把它摆在他面前展示。
+- 需要区分或对比时，用**并排/左右对照**的布局：这样 vs 那样、强 vs 弱、之前 vs 之后。
+- 保持信息**清楚而不拥挤**：宁可一张图讲透一个点，也不要塞满一堆看不懂的元素。
+
+## img_prompt 撰写规则（固定顺序）
+
+1. 讲解场景与动作（约35%篇幅）：主体正在**演示/指向/呈现/对比/展示**什么，这一格在教哪个知识点。用有画面感的讲解动词（presenting, pointing at, holding up, comparing, gesturing toward, demonstrating）。
+2. 表情与姿态（约15%）：从容、专注、了然、讲到重点时的强调；肢体是**讲解性**的（伸手指示、双手展开呈现、举起道具），不是挣扎痛苦。
+3. 图解元素（约15%，没有就写"No supporting characters"或"无配角"）：
+
+图解/配角视觉体系：
+- 信息图元：把概念画成清楚的示意——五行/元素符号、关系箭头、并排对比的两个物件、简单的图表、剖面图
+- 具体化的概念物件：一棵树、一堆土、一座小房子剖面，摆在主体面前供他讲解
+- 仅当需要表现人际或关系时，才用2-4个简化人形剪影
+
+数量控制：画面焦点唯一，图解服务于"讲清这一句"，不要堆砌。
+
+4. 环境与道具（约20%）：环境为**教学服务**——一块可画图的黑板或地面、摆放着代表概念的物件、一间可供讲解的房子剖面。道具清楚可辨、和讲解内容直接相关，不要无关的戏剧性破坏（龟裂、塌陷、飞尘这些留给别的系列）。
+
+5. 构图（约15%）：**画面要填满**，主体连同他正在讲解的图解一起撑满竖幅，从上边缘到下边缘，图解元素铺到画面四角。但机位以**"看得清"为先**——正面或轻微角度、平视或非常轻微的角度，不要夸张俯仰。主体占画面 40-60%，给图解留出清楚的位置。
+
+6. 风格锚点（约15%，完全固定，不要改写）：
+__STYLE_ANCHOR__
+
+注：构图指令由程序自动追加在最后，你不用写。但你描述图解和道具时要**为它做好准备**——让图解元素本来就是朝画面铺开、和主体一起填满画面的。
+
+## video_prompt 撰写规则
+
+"5秒场景：主体<一个具体的讲解动作>，图解<轻微出现/依次点亮/箭头流动>，镜头<轻微推进1-2%/轻微平移2%/静止不动>，转场描述（如：平滑过渡/明快过渡）"
+
+注意：镜头运动保持克制，信息的清晰体现在**画面内容**上。
+
+请严格按 "IMG_PROMPT: ..." 和 "VIDEO_PROMPT: ..." 两行输出。img_prompt 和 video_prompt 的场景描述部分：默认使用英文撰写；只有当输入的旁白原文本身是中文时，才改用中文撰写。风格锚点部分保持原文不译。
+
+__TEXT_POLICY__
+
+重要：上面几条规则里出现的中文词汇只是给你解释规则用的，不是要你原样抄进输出里。如果你决定用英文撰写img_prompt，那么从头到尾都必须是英文，包括图解、道具、构图这几部分也要翻译成英文描述，不能保留任何中文字词或中文标点。写完后自查一遍，确认没有遗漏的汉字。"""
+
 
 # 不同文生图模型对"画面内文字"的能力差异很大，提示词策略要分开走
 TEXT_POLICY_NO_TEXT = """## 画面内文字规则（重要）
@@ -138,17 +192,32 @@ def _text_policy(style: Style) -> str:
 
 # 让 LLM 自己写这句不可靠——它一旦把篇幅花在动作描写上就会把构图段落整个省掉，
 # 而且风格锚点拼在末尾还会把它挤走。固定内容直接在代码里追加，省一次不确定性。
-_COMPOSITION_SUFFIX = (
+_COMPOSITION_SUFFIX_DRAMA = (
     " Composition: the scene is full-bleed and fills the entire vertical frame edge to edge — "
     "the environment, props, and dramatic elements extend past all four edges of the canvas. "
     "The subject and the thing he is struggling with dominate the frame; never leave him as a "
     "small isolated figure floating in the middle of empty space."
 )
+_COMPOSITION_SUFFIX_TEACHING = (
+    " Composition: the scene is full-bleed and fills the entire vertical frame edge to edge — "
+    "the teacher and the diagram or objects he is explaining extend toward all four edges of the "
+    "canvas. He is calmly presenting and pointing at the concept, clearly demonstrating it like a "
+    "patient teacher — he is never in distress, never crushed, suffering, or overwhelmed, and never "
+    "a small isolated figure floating in empty space."
+)
+
+
+def _system_prompt(style: Style) -> tuple[str, str]:
+    """按画风的叙事模式选 (系统提示词模板, 构图后缀)。"""
+    if style.scene_mode == "teaching":
+        return SYSTEM_PROMPT_TEACHING, _COMPOSITION_SUFFIX_TEACHING
+    return SYSTEM_PROMPT_DRAMA, _COMPOSITION_SUFFIX_DRAMA
 
 
 async def build_scene_prompt(segment_text: str, style: Style) -> tuple[str, str]:
     """返回 (img_prompt, video_prompt)。LLM调用失败或解析失败时抛出异常，调用方负责降级。"""
-    system_prompt = SYSTEM_PROMPT.replace(
+    template, composition_suffix = _system_prompt(style)
+    system_prompt = template.replace(
         "__STYLE_ANCHOR__", style.prompt_suffix or "无特殊风格锚点"
     ).replace("__TEXT_POLICY__", _text_policy(style))
     user_prompt = f"content: {segment_text}"

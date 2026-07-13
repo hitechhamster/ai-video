@@ -13,6 +13,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export type ImageProviderName = "seedream" | "gemini";
+export type SceneMode = "drama" | "teaching";
 
 export interface Style {
   id: string;
@@ -24,6 +25,7 @@ export interface Style {
   image_provider: ImageProviderName;
   enforce_monochrome: boolean;
   enforce_color: boolean;
+  scene_mode: SceneMode;
   is_builtin: boolean;
   created_at: string;
 }
@@ -37,6 +39,7 @@ export interface StyleInput {
   image_provider: ImageProviderName;
   enforce_monochrome: boolean;
   enforce_color: boolean;
+  scene_mode: SceneMode;
 }
 
 export interface Voice {

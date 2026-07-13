@@ -32,6 +32,9 @@ class Style(Base):
     enforce_monochrome: Mapped[bool] = mapped_column(Boolean, default=False)
     # 彩色画风勾上它：饱和度太低（画面掉成灰阶）就自动重生成，跟上面的黑白约束互为反面
     enforce_color: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 场景叙事模式：drama=戏剧张力（主体在冲突/挣扎的最高点），teaching=教学讲解
+    # （主体从容演示、画面传递信息）。命理/科普这类知识内容适合 teaching。
+    scene_mode: Mapped[str] = mapped_column(String, default="drama")
     is_builtin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
 

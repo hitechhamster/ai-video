@@ -13,6 +13,7 @@ class StyleCreate(BaseModel):
     image_provider: Literal["openrouter", "gemini"] = "openrouter"
     enforce_monochrome: bool = False
     enforce_color: bool = False
+    scene_mode: Literal["drama", "teaching"] = "drama"
 
 
 class StyleOut(StyleCreate):

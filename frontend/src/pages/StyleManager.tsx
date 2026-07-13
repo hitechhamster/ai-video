@@ -8,6 +8,7 @@ const EMPTY_FORM: StyleInput = {
   image_provider: "openrouter",
   enforce_monochrome: false,
   enforce_color: false,
+  scene_mode: "drama",
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -113,6 +114,7 @@ export default function StyleManager() {
                   {referenceUrl && <span className="tag">已锁定角色</span>}
                   {s.enforce_monochrome && <span className="tag">强制黑白</span>}
                   {s.enforce_color && <span className="tag">强制上色</span>}
+                  <span className="tag">{s.scene_mode === "teaching" ? "教学向" : "戏剧向"}</span>
                 </h4>
                 <p>{s.prompt_suffix}</p>
 
@@ -192,6 +194,21 @@ export default function StyleManager() {
               {form.image_provider === "gemini"
                 ? " 生图、配音、场景提示词全走 Gemini，只需要 GEMINI_API_KEY。"
                 : " OpenRouter 上没有可用的 TTS，所以配音会回落到 MiniMax，需要额外配 MINIMAX_API_KEY。"}
+            </p>
+          </label>
+          <label>
+            叙事模式
+            <select
+              value={form.scene_mode}
+              onChange={(e) =>
+                setForm({ ...form, scene_mode: e.target.value as StyleInput["scene_mode"] })
+              }
+            >
+              <option value="drama">戏剧向（主体在冲突/挣扎的最高点，适合故事、爽文）</option>
+              <option value="teaching">教学向（主体从容讲解、画面传递信息，适合科普、命理）</option>
+            </select>
+            <p className="hint">
+              决定每张分镜的叙事取向。戏剧向张力强但主体常常"很惨"；教学向让主体像老师一样演示概念，画面重信息、不卖惨。
             </p>
           </label>
           <label>
