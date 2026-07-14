@@ -41,6 +41,19 @@ class Settings(BaseSettings):
 
     storage_dir: str = "storage"
 
+    # ── 每日自动出片 + YouTube 上传 ──────────────────────────────
+    # 每天用哪个模板出片（按模板名找，改名了记得同步）
+    daily_template_name: str = "长衫先生"
+    # 剪映导出 mp4 落地的文件夹——publish 时从这里抓最新的 mp4。
+    # 用一个"专用"子文件夹，别用通用的"视频"目录，免得抓到无关的录屏误发。
+    # 在剪映里把导出目录固定到这里。
+    youtube_export_dir: str = r"C:\Users\22460\Videos\bazi_exports"
+    # 上传后的默认隐私：private / unlisted / public
+    youtube_privacy: str = "private"
+    # OAuth 凭据与令牌（放 backend/ 下，已被 .gitignore 排除）
+    youtube_client_secret_file: str = "client_secret.json"
+    youtube_token_file: str = "youtube_token.json"
+
     @property
     def storage_path(self) -> Path:
         path = BACKEND_DIR / self.storage_dir

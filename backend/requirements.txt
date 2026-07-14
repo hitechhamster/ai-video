@@ -8,3 +8,7 @@ python-multipart==0.0.20
 pyjianyingdraft==0.3.0
 # 用来检测生成的图有没有违反画风的"必须黑白"约束（见 services/image_guard.py）
 pillow==12.3.0
+# YouTube 自动上传（scripts/youtube_client.py）；不用自动发片可以不装
+google-api-python-client==2.161.0
+google-auth-oauthlib==1.2.1
+google-auth-httplib2==0.2.0
